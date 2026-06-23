@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+    <title>Secret Dashboard</title>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Secret Dashboard</h1>
+      <article>
+        <h2>Auth Token</h2>
+        <textarea id="token-textarea" placeholder="*****" disabled></textarea>
+      </article>
+      <article>
+        <h2>POST /auth/login</h2>
+        <form id="post-auth-login-form">
+          <fieldset class="grid">
+            <label>
+              Username
+              <input name="username" placeholder="Username" />
+              <small>try "Hannah"</small>
+            </label>
+            <label>
+              Password
+              <input type="password" name="password" placeholder="********" />
+              <small>try "1"</small>
+            </label>
+          </fieldset>
+          <input type="submit" value="Login" />
+        </form>
+      </article>
+      <article>
+        <h2>GET /notifications</h2>
+        <button id="get-notifications-button">GET</button>
+        <textarea
+          id="get-notifications-textarea"
+          placeholder="[]"
+          disabled
+        ></textarea>
+      </article>
+    </main>
+  </body>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const tokenTextArea = document.getElementById("token-textarea");
+      const postAuthLoginForm = document.getElementById("post-auth-login-form");
+      const getNotificationsButton = document.getElementById(
+        "get-notifications-button",
+      );
+      const getNotificationsTextArea = document.getElementById(
+        "get-notifications-textarea",
+      );
+      postAuthLoginForm.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const formData = new FormData(postAuthLoginForm);
+        const dataObject = Object.fromEntries(formData.entries());
+        const response = await fetch("http://127.0.0.1:3000/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(dataObject),
+        });
+        const result = await response.json();
+        const token = result.token;
+        tokenTextArea.value = token;
+        alert(`Успех! Токен: ${token}`);
+      });
+      getNotificationsButton.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        const response = await fetch("http://127.0.0.1:3000/notifications", {
+          headers: {
+            Authorization: `Bearer ${tokenTextArea.value}`,
+          },
+        });
+        const result = await response.json();
+        getNotificationsTextArea.value = JSON.stringify(result, null, 2);
+      });
+    });
+  </script>
+</html>
