@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/nats-io/nats.go"
@@ -42,6 +42,31 @@ func init() {
 	}
 }
 
+const pets = "🐶🐱🐸🐷🐵🐔🦊🦁🐴🐝🦄🐳🦜🦔"
+const flowers = "🌵🌴🌲🍄🌹🌻"
+const ingredients = "🍎🍐🍊🍋🍋‍🟩🍌🍉🍇🍓🫐🍒🍑🥭🍍🥥🥝🍅🥑🥒🌶️🫑🌽🥕🧄🧅🥔🫚🍞🧀🥚🧈🥓🥜"
+const dishes = "🥐🌭🍔🍟🍕🥪🌮🍣🍰🍿"
+const other = "🔥⭐️"
+const emojis = pets + flowers + ingredients + dishes + other
+
+// func randomEmoji() string {
+// 	r := emojis[rand.Int()%len(emojis)]
+// 	min := r[0]
+// 	max := r[1]
+// 	n := rand.Intn(max-min+1) + min
+// 	return html.UnescapeString("&#" + strconv.Itoa(n) + ";")
+// }
+
+func print(format string, a ...any) {
+	fmt.Printf(
+		"\033[32m[%s]\033[0m "+format,
+		append(
+			[]any{time.Now().Format("15:04:05.000000000")},
+			a...,
+		)...,
+	)
+}
+
 func main() {
 	nc, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
@@ -49,35 +74,25 @@ func main() {
 	}
 	defer nc.Close()
 
-	go startHttpServer(nc, &notifications)
-	go startService(nc, &notifications)
-
-	select {}
-}
-
-func startHttpServer(nc *nats.Conn, notifications *map[uint][]Notification) {
-	mux := http.NewServeMux()
-
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-
-	mux.HandleFunc("POST /auth/login", handlePostAuthLogin)
-	mux.HandleFunc("GET /notifications", handleGetNotifications)
-
-	fmt.Printf("HTTP сервер запущен на http://%s\n", Config.Host)
-	http.ListenAndServe(Config.Host, mux)
-}
-
-func startService(nc *nats.Conn, notifications *map[uint][]Notification) {
-	_, err := nc.Subscribe("service.query", func(m *nats.Msg) {
-		number, _ := strconv.Atoi(string(m.Data))
-		err := m.Respond([]byte(strconv.Itoa(number * 2)))
-		if err != nil {
-			log.Printf("[Service] Failed to respond: %v", err)
-		}
-	})
-	if err != nil {
-		log.Fatalf("Subscription error: %v", err)
+	subscribers := map[string]time.Duration{
+		"1-🍎": 1000,
+		"2-🍌": 1020,
+		"3-🥝": 1200,
 	}
 
-	log.Println("Service is ready to process requests...")
+	for name, ms := range subscribers {
+		nc.QueueSubscribe("sub", "queue", func(m *nats.Msg) {
+			print("%s) 🚀 Start: %s\n", name, m.Data)
+			time.Sleep(time.Millisecond * ms)
+			print("%s) 🎉 Finish: %s\n", name, m.Data)
+		})
+	}
+
+	for i := 1; i <= 1000; i++ {
+		// time.Sleep(time.Millisecond * 400)
+		nc.Publish("sub", []byte(
+			fmt.Sprintf("%d", i),
+		))
+	}
+	select {}
 }
