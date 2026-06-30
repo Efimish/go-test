@@ -2,45 +2,61 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 
 	"github.com/joho/godotenv"
 )
 
-var Config struct {
-	Port      uint16
+type Config struct {
 	Host      string
-	JwtSecret string
+	Port      uint16
+	HostPort  string
+	PublicURL string
+	JWTSecret string
 }
 
-func init() {
-	// Load .env file
-	if err := godotenv.Load(); err != nil {
-		panic(err)
+func Load() Config {
+	err := godotenv.Load()
+	if err != nil {
+		log.Panicf("Error when loading .env file: %s", err)
 	}
-	// PORT
-	envPort, exists := os.LookupEnv("PORT")
-	if !exists {
-		Config.Port = 3000
-	} else {
-		port, _ := strconv.ParseUint(envPort, 10, 16)
-		Config.Port = uint16(port)
-	}
-	// HOST
-	Config.Host = fmt.Sprintf("192.168.10.20:%d", Config.Port)
-	// JwtSecret
-	envJwtSecret, exists := os.LookupEnv("JWT_SECRET")
-	if !exists {
-		panic("Missing JWT_SECRET env variable")
-	} else {
-		Config.JwtSecret = envJwtSecret
-	}
+	config := Config{}
+
+	config.Host = getEnvFallback("HOST", "192.168.10.20")
+	config.Port = getEnvFallbackUint16("PORT", 3000)
+	config.HostPort = fmt.Sprintf("%s:%d", config.Host, config.Port)
+	config.PublicURL = fmt.Sprintf("http://%s", config.HostPort)
+	config.JWTSecret = getEnvRequired("JWT_SECRET")
+
+	return config
 }
 
-// const pets = "🐶🐱🐸🐷🐵🐔🦊🦁🐴🐝🦄🐳🦜🦔"
-// const flowers = "🌵🌴🌲🍄🌹🌻"
-// const ingredients = "🍎🍐🍊🍋🍋‍🟩🍌🍉🍇🍓🫐🍒🍑🥭🍍🥥🥝🍅🥑🥒🌶️🫑🌽🥕🧄🧅🥔🫚🍞🧀🥚🧈🥓🥜"
-// const dishes = "🥐🌭🍔🍟🍕🥪🌮🍣🍰🍿"
-// const other = "🔥⭐️"
-// const emojis = pets + flowers + ingredients + dishes + other
+func getEnvRequired(key string) string {
+	value, found := os.LookupEnv(key)
+	if !found {
+		log.Panicf("Missing required environment variable: %s", key)
+	}
+	return value
+}
+
+func getEnvFallback(key, fallback string) string {
+	value, found := os.LookupEnv(key)
+	if !found {
+		return fallback
+	}
+	return value
+}
+
+func getEnvFallbackUint16(key string, fallback uint16) uint16 {
+	str, found := os.LookupEnv(key)
+	if !found {
+		return fallback
+	}
+	value, err := strconv.ParseUint(str, 10, 16)
+	if err != nil {
+		log.Panicf("Cannot convert environment variable to uint16: %s", key)
+	}
+	return uint16(value)
+}

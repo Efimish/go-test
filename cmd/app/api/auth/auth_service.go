@@ -1,17 +1,17 @@
-package main
+package auth
 
 var users = []User{
-	User{
+	{
 		ID:       1,
 		Username: "Hannah",
 		Password: "1",
 	},
-	User{
+	{
 		ID:       2,
 		Username: "Olivia",
 		Password: "2",
 	},
-	User{
+	{
 		ID:       3,
 		Username: "Amelia",
 		Password: "3",
@@ -24,11 +24,12 @@ func NewAuthService() AuthService {
 	return AuthService{}
 }
 
-func (this AuthService) Login(username, password string) (User, bool) {
-	for _, u := range users {
-		if u.Username == username && u.Password == password {
-			return u, true
+func (AuthService) Login(username, password string) (User, bool) {
+	for _, user := range users {
+		if user.Username == username && user.Password == password {
+			return user, true
 		}
 	}
+
 	return User{}, false
 }

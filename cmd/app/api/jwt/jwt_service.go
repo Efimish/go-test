@@ -1,4 +1,4 @@
-package main
+package jwt
 
 import (
 	"crypto/ed25519"
@@ -8,24 +8,24 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type JwtService struct {
+type JWTService struct {
 	privateKey ed25519.PrivateKey
 }
 
-func NewJwtService(jwtSecret string) JwtService {
+func NewJWTService(jwtSecret string) JWTService {
 	seed := sha256.Sum256([]byte(jwtSecret))
 	privateKey := ed25519.NewKeyFromSeed(seed[:])
-	return JwtService{privateKey}
+	return JWTService{privateKey: privateKey}
 }
 
-func (s JwtService) Sign(userId uint) (string, error) {
+func (s JWTService) Sign(userID uint) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, jwt.MapClaims{
-		"sub": fmt.Sprintf("%d", userId),
+		"sub": fmt.Sprintf("%d", userID),
 	})
 	return token.SignedString(s.privateKey)
 }
 
-func (s JwtService) Verify(tokenString string) (jwt.MapClaims, error) {
+func (s JWTService) Verify(tokenString string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(
 		tokenString,
 		func(token *jwt.Token) (any, error) {
@@ -39,7 +39,7 @@ func (s JwtService) Verify(tokenString string) (jwt.MapClaims, error) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, err
+		return nil, fmt.Errorf("invalid token claims")
 	}
 
 	return claims, nil
