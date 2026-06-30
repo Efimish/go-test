@@ -10,27 +10,35 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func NotificationsController(notificationService NotificationService, tokenAuth *jwtauth.JWTAuth) func(chi.Router) {
-	return func(r chi.Router) {
-		r.Use(jwtauth.Verifier(tokenAuth))
-		r.Use(jwtauth.Authenticator(tokenAuth))
-		r.Get("/", handleGetNotifications(notificationService))
+type Handler struct {
+	notificationService Service
+	tokenAuth           *jwtauth.JWTAuth
+}
+
+func NewHandler(notificationService Service, tokenAuth *jwtauth.JWTAuth) Handler {
+	return Handler{
+		notificationService: notificationService,
+		tokenAuth:           tokenAuth,
 	}
 }
 
-func handleGetNotifications(notificationService NotificationService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		_, claims, _ := jwtauth.FromContext(r.Context())
-		tokenClaims := jwt.MapClaims(claims)
+func (h Handler) Routes(r chi.Router) {
+	r.Use(jwtauth.Verifier(h.tokenAuth))
+	r.Use(jwtauth.Authenticator(h.tokenAuth))
+	r.Get("/", h.getNotifications)
+}
 
-		userID, err := userIDFromClaims(tokenClaims)
-		if err != nil {
-			http.Error(w, "Invalid token subject", http.StatusUnauthorized)
-			return
-		}
+func (h Handler) getNotifications(w http.ResponseWriter, r *http.Request) {
+	_, claims, _ := jwtauth.FromContext(r.Context())
+	tokenClaims := jwt.MapClaims(claims)
 
-		json.NewEncoder(w).Encode(notificationService.ListByUserID(userID))
+	userID, err := userIDFromClaims(tokenClaims)
+	if err != nil {
+		http.Error(w, "Invalid token subject", http.StatusUnauthorized)
+		return
 	}
+
+	json.NewEncoder(w).Encode(h.notificationService.ListByUserID(userID))
 }
 
 func userIDFromClaims(claims jwt.MapClaims) (uint, error) {

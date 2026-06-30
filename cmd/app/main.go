@@ -18,10 +18,13 @@ import (
 func main() {
 	cfg := config.Load()
 
-	authService := auth.NewAuthService()
-	jwtService := jwt.NewJWTService(cfg.JWTSecret)
-	notificationService := notifications.NewNotificationService(cfg.PublicURL)
+	authService := auth.NewService()
+	jwtService := jwt.NewService(cfg.JWTSecret)
+	notificationService := notifications.NewService(cfg.PublicURL)
 	tokenAuth := jwt.NewTokenAuth(cfg.JWTSecret)
+
+	authHandler := auth.NewHandler(authService, jwtService)
+	notificationsHandler := notifications.NewHandler(notificationService, tokenAuth)
 
 	r := chi.NewRouter()
 
@@ -38,8 +41,8 @@ func main() {
 	}))
 
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	r.Route("/auth", auth.AuthController(authService, jwtService))
-	r.Route("/notifications", notifications.NotificationsController(notificationService, tokenAuth))
+	r.Route("/auth", authHandler.Routes)
+	r.Route("/notifications", notificationsHandler.Routes)
 
 	fmt.Printf("HTTP сервер запущен на %s\n", cfg.PublicURL)
 	log.Fatal(http.ListenAndServe(cfg.HostPort, r))

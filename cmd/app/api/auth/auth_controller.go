@@ -8,35 +8,43 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func AuthController(authService AuthService, jwtService jwt.JWTService) func(chi.Router) {
-	return func(r chi.Router) {
-		r.Post("/login", handlePostAuthLogin(authService, jwtService))
+type Handler struct {
+	authService Service
+	jwtService  jwt.Service
+}
+
+func NewHandler(authService Service, jwtService jwt.Service) Handler {
+	return Handler{
+		authService: authService,
+		jwtService:  jwtService,
 	}
 }
 
-func handlePostAuthLogin(authService AuthService, jwtService jwt.JWTService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+func (h Handler) Routes(r chi.Router) {
+	r.Post("/login", h.postLogin)
+}
 
-		var credentials Credentials
-		if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
-			http.Error(w, "Invalid JSON or body too large", http.StatusBadRequest)
-			return
-		}
+func (h Handler) postLogin(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
-		user, found := authService.Login(credentials.Username, credentials.Password)
-		if !found {
-			http.Error(w, "Wrong credentials", http.StatusUnauthorized)
-			return
-		}
-
-		token, err := jwtService.Sign(user.ID)
-		if err != nil {
-			http.Error(w, "Failed to sign token", http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(TokenObject{Token: token})
+	var credentials Credentials
+	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
+		http.Error(w, "Invalid JSON or body too large", http.StatusBadRequest)
+		return
 	}
+
+	user, found := h.authService.Login(credentials.Username, credentials.Password)
+	if !found {
+		http.Error(w, "Wrong credentials", http.StatusUnauthorized)
+		return
+	}
+
+	token, err := h.jwtService.Sign(user.ID)
+	if err != nil {
+		http.Error(w, "Failed to sign token", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(TokenObject{Token: token})
 }

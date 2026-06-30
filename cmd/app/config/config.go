@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strconv"
 
@@ -18,15 +19,12 @@ type Config struct {
 }
 
 func Load() Config {
-	err := godotenv.Load()
-	if err != nil {
-		log.Panicf("Error when loading .env file: %s", err)
-	}
+	godotenv.Load()
 	config := Config{}
 
 	config.Host = getEnvFallback("HOST", "192.168.10.20")
 	config.Port = getEnvFallbackUint16("PORT", 3000)
-	config.HostPort = fmt.Sprintf("%s:%d", config.Host, config.Port)
+	config.HostPort = net.JoinHostPort(config.Host, strconv.FormatUint(uint64(config.Port), 10))
 	config.PublicURL = fmt.Sprintf("http://%s", config.HostPort)
 	config.JWTSecret = getEnvRequired("JWT_SECRET")
 

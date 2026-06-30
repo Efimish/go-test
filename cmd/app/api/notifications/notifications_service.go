@@ -5,16 +5,16 @@ import (
 	"time"
 )
 
-type NotificationService struct {
+type Service struct {
 	notifications map[uint][]Notification
 }
 
-func NewNotificationService(publicURL string) NotificationService {
+func NewService(publicURL string) Service {
 	image1 := fmt.Sprintf("%s/static/anon1.webp", publicURL)
 	image2 := fmt.Sprintf("%s/static/anon2.jpg", publicURL)
 	image3 := fmt.Sprintf("%s/static/anon3.webp", publicURL)
 
-	return NotificationService{
+	return Service{
 		notifications: map[uint][]Notification{
 			1: {
 				{
@@ -59,6 +59,6 @@ func NewNotificationService(publicURL string) NotificationService {
 	}
 }
 
-func (s NotificationService) ListByUserID(userID uint) []Notification {
+func (s Service) ListByUserID(userID uint) []Notification {
 	return s.notifications[userID]
 }
