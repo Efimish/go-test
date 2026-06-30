@@ -2,8 +2,8 @@ package nats
 
 import (
 	"fmt"
-	"sync"
 	"testing"
+	"time"
 
 	"github.com/nats-io/nats.go"
 )
@@ -60,22 +60,44 @@ func TestBeforeTest(t *testing.T) {
 	select {}
 }
 
+func print(format string, a ...any) {
+	fmt.Printf(
+		"\033[32m[%s]\033[0m "+format,
+		append(
+			[]any{time.Now().Format("15:04:05.000000000")},
+			a...,
+		)...,
+	)
+}
+
 func TestNatsSubscriberQueue(t *testing.T) {
 	// Connect to a server
-	nc, err := nats.Connect(nats.DefaultURL)
+	nc, err := nats.Connect("127.0.0.1", nats.Token("secret"))
 	if err != nil {
 		t.Errorf("Не удалось подключиться к серверу NATS: %s", err)
 	}
 	defer nc.Close()
 
-	// Use a WaitGroup to wait for 10 messages to arrive
-	wg := sync.WaitGroup{}
-	wg.Add(10)
-
-	// Create a queue subscription on "updates" with queue name "workers"
-	if _, err := nc.QueueSubscribe("updates", "workers", func(m *nats.Msg) {
-		wg.Done()
-	}); err != nil {
-		t.Fatal(err)
+	// Три подписчика
+	subscribers := map[string]time.Duration{
+		"1-🍎": 1000,
+		"2-🍌": 1020,
+		"3-🥝": 1200,
 	}
+
+	for name, ms := range subscribers {
+		nc.QueueSubscribe("sub", "queue", func(m *nats.Msg) {
+			print("%s) 🚀 Start: %s\n", name, m.Data)
+			time.Sleep(time.Millisecond * ms)
+			print("%s) 🎉 Finish: %s\n", name, m.Data)
+		})
+	}
+
+	for i := 1; i <= 1000; i++ {
+		// time.Sleep(time.Millisecond * 400)
+		nc.Publish("sub", []byte(
+			fmt.Sprintf("%d", i),
+		))
+	}
+	select {}
 }

@@ -3,7 +3,14 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+
+	. "github.com/efimish/go-test/cmd/app/config"
+	"github.com/go-chi/chi/v5"
 )
+
+func authController(r chi.Router) {
+	r.Post("/login", handlePostAuthLogin)
+}
 
 func handlePostAuthLogin(w http.ResponseWriter, r *http.Request) {
 	// Ограничиваем максимальный размер тела (защита от DDOS)

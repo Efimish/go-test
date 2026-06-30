@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"time"
+
+	. "github.com/efimish/go-test/cmd/app/config"
 )
 
 var image1 = fmt.Sprintf("http://%s/static/anon1.webp", Config.Host)

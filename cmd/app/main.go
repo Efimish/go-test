@@ -1,98 +1,41 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"log"
-	"os"
-	"strconv"
+	"net/http"
 	"time"
 
-	"github.com/joho/godotenv"
-	"github.com/nats-io/nats.go"
+	. "github.com/efimish/go-test/cmd/app/config"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
-var Config struct {
-	Port      uint16
-	Host      string
-	JwtSecret string
-}
-
-func init() {
-	// Load .env file
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
-	}
-	// PORT
-	envPort, exists := os.LookupEnv("PORT")
-	if !exists {
-		Config.Port = 3000
-	} else {
-		port, _ := strconv.ParseUint(envPort, 10, 16)
-		Config.Port = uint16(port)
-	}
-	// HOST
-	Config.Host = fmt.Sprintf("127.0.0.1:%d", Config.Port)
-	// JwtSecret
-	envJwtSecret, exists := os.LookupEnv("JWT_SECRET")
-	if !exists {
-		panic("Missing JWT_SECRET env variable")
-	} else {
-		Config.JwtSecret = envJwtSecret
-	}
-}
-
-const pets = "🐶🐱🐸🐷🐵🐔🦊🦁🐴🐝🦄🐳🦜🦔"
-const flowers = "🌵🌴🌲🍄🌹🌻"
-const ingredients = "🍎🍐🍊🍋🍋‍🟩🍌🍉🍇🍓🫐🍒🍑🥭🍍🥥🥝🍅🥑🥒🌶️🫑🌽🥕🧄🧅🥔🫚🍞🧀🥚🧈🥓🥜"
-const dishes = "🥐🌭🍔🍟🍕🥪🌮🍣🍰🍿"
-const other = "🔥⭐️"
-const emojis = pets + flowers + ingredients + dishes + other
-
-// func randomEmoji() string {
-// 	r := emojis[rand.Int()%len(emojis)]
-// 	min := r[0]
-// 	max := r[1]
-// 	n := rand.Intn(max-min+1) + min
-// 	return html.UnescapeString("&#" + strconv.Itoa(n) + ";")
-// }
-
-func print(format string, a ...any) {
-	fmt.Printf(
-		"\033[32m[%s]\033[0m "+format,
-		append(
-			[]any{time.Now().Format("15:04:05.000000000")},
-			a...,
-		)...,
-	)
-}
-
 func main() {
-	nc, err := nats.Connect(nats.DefaultURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer nc.Close()
+	r := chi.NewRouter()
 
-	subscribers := map[string]time.Duration{
-		"1-🍎": 1000,
-		"2-🍌": 1020,
-		"3-🥝": 1200,
-	}
+	r.Use(middleware.RequestID)
+	r.Use(middleware.ClientIPFromRemoteAddr)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(middleware.Compress(5, "application/json"))
 
-	for name, ms := range subscribers {
-		nc.QueueSubscribe("sub", "queue", func(m *nats.Msg) {
-			print("%s) 🚀 Start: %s\n", name, m.Data)
-			time.Sleep(time.Millisecond * ms)
-			print("%s) 🎉 Finish: %s\n", name, m.Data)
-		})
-	}
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"*"},
+		MaxAge:         300,
+	}))
 
-	for i := 1; i <= 1000; i++ {
-		// time.Sleep(time.Millisecond * 400)
-		nc.Publish("sub", []byte(
-			fmt.Sprintf("%d", i),
-		))
-	}
-	select {}
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	r.Route("/auth", authController)
+	r.Route("/notifications", notificationsController)
+	r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(notifications[1])
+	})
+
+	fmt.Printf("HTTP сервер запущен на http://%s\n", Config.Host)
+	http.ListenAndServe(Config.Host, r)
 }

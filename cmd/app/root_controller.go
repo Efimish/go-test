@@ -5,7 +5,12 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
+	. "github.com/efimish/go-test/cmd/app/config"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/nats-io/nats.go"
 )
 
@@ -23,15 +28,26 @@ func handleRoot() {
 }
 
 func startHttpServer(nc *nats.Conn, notifications *map[uint][]Notification) {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	r.Use(middleware.RequestID)
+	r.Use(middleware.ClientIPFromRemoteAddr)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(middleware.Compress(5, "application/json"))
 
-	mux.HandleFunc("POST /auth/login", handlePostAuthLogin)
-	mux.HandleFunc("GET /notifications", handleGetNotifications)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"*"},
+		MaxAge:         300,
+	}))
+
+	r.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	r.Route("/auth", authController)
+	r.Route("/notifications", notificationsController)
 
 	fmt.Printf("HTTP сервер запущен на http://%s\n", Config.Host)
-	http.ListenAndServe(Config.Host, mux)
+	http.ListenAndServe(Config.Host, r)
 }
 
 func startService(nc *nats.Conn, notifications *map[uint][]Notification) {
