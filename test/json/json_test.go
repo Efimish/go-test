@@ -7,6 +7,11 @@ import (
 	"io"
 )
 
+type Notification struct {
+	ID      int    `json:"id"`
+	Message string `json:"message"`
+}
+
 func TestJson() {
 	notification := Notification{
 		ID:      1,

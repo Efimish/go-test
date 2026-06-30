@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/efimish/go-test/cmd/app/api/jwt"
+	"github.com/efimish/go-test/internal/api/jwt"
 	"github.com/go-chi/chi/v5"
 )
 
