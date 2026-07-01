@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 type Handler struct {
@@ -29,6 +31,7 @@ func (h Handler) Routes(r chi.Router) {
 	r.Get("/amount", h.getNotificationsAmount)
 	r.Get("/list", h.getNotificationsList)
 	r.Post("/read", h.postNotificationsRead)
+	r.HandleFunc("/listen", h.wsNotificationsListen)
 }
 
 func (h Handler) getNotificationsAmount(w http.ResponseWriter, r *http.Request) {
@@ -90,4 +93,34 @@ func (h Handler) postNotificationsRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.notificationService.DeleteByIds(userId, ids)
+}
+
+func (h Handler) wsNotificationsListen(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
+	// обновление соединения до WebSocket
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, "Invalid ws Upgrade", http.StatusBadRequest)
+		return
+	}
+	defer ws.Close()
+
+	for {
+		messageType, message, err := ws.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			break
+		}
+		log.Printf("Received: %s", message)
+
+		// эхо ансвер
+		if err := ws.WriteMessage(messageType, message); err != nil {
+			log.Println(err)
+			break
+		}
+	}
 }
