@@ -25,10 +25,24 @@ func NewHandler(notificationService Service, tokenAuth *jwtauth.JWTAuth) Handler
 func (h Handler) Routes(r chi.Router) {
 	r.Use(jwtauth.Verifier(h.tokenAuth))
 	r.Use(jwtauth.Authenticator(h.tokenAuth))
-	r.Get("/", h.getNotifications)
+	r.Get("/amount", h.getNotificationsAmount)
+	r.Get("/list", h.getNotificationsList)
 }
 
-func (h Handler) getNotifications(w http.ResponseWriter, r *http.Request) {
+func (h Handler) getNotificationsAmount(w http.ResponseWriter, r *http.Request) {
+	_, claims, _ := jwtauth.FromContext(r.Context())
+	tokenClaims := jwt.MapClaims(claims)
+
+	userID, err := userIDFromClaims(tokenClaims)
+	if err != nil {
+		http.Error(w, "Invalid token subject", http.StatusUnauthorized)
+		return
+	}
+
+	json.NewEncoder(w).Encode(h.notificationService.AmountByUserID(userID))
+}
+
+func (h Handler) getNotificationsList(w http.ResponseWriter, r *http.Request) {
 	_, claims, _ := jwtauth.FromContext(r.Context())
 	tokenClaims := jwt.MapClaims(claims)
 

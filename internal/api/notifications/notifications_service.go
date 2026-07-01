@@ -3,6 +3,8 @@ package notifications
 import (
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -10,53 +12,65 @@ type Service struct {
 }
 
 func NewService(publicURL string) Service {
-	image1 := fmt.Sprintf("%s/static/anon1.webp", publicURL)
-	image2 := fmt.Sprintf("%s/static/anon2.jpg", publicURL)
-	image3 := fmt.Sprintf("%s/static/anon3.webp", publicURL)
-
 	return Service{
 		notifications: map[uint][]Notification{
 			1: {
 				{
-					Date:  time.Now().Add(-time.Minute * 30),
-					Title: "Message from John",
-					Body:  "Hello",
-					Image: &image1,
+					Id:       uuid.New(),
+					Date:     time.Now().Add(-time.Minute * 30),
+					Title:    new("Message from John"),
+					Icon:     new(fmt.Sprintf("%s/static/anon1.webp", publicURL)),
+					Priority: PriorityHigh,
+					Body:     "Hello",
 				},
 				{
-					Date:  time.Now().Add(-time.Minute * 20),
-					Title: "Message from Robert",
-					Body:  "Hey bro",
-					Image: &image2,
+					Id:       uuid.New(),
+					Date:     time.Now().Add(-time.Minute * 20),
+					Title:    new("Message from Robert"),
+					Icon:     new(fmt.Sprintf("%s/static/anon2.jpg", publicURL)),
+					Priority: PriorityHigh,
+					Body:     "Hey bro",
 				},
 				{
-					Date:  time.Now().Add(-time.Minute * 10),
-					Title: "Message from Kyle",
-					Body:  "Damn",
-					Image: &image3,
+					Id:       uuid.New(),
+					Date:     time.Now().Add(-time.Minute * 10),
+					Title:    new("Message from Kyle"),
+					Icon:     new(fmt.Sprintf("%s/static/anon3.webp", publicURL)),
+					Priority: PriorityHigh,
+					Body:     "Damn",
 				},
 			},
 			2: {
 				{
-					Date:  time.Now().Add(-time.Minute * 60),
-					Title: "Message from Ashley",
-					Body:  "See you there!",
+					Id:       uuid.New(),
+					Date:     time.Now().Add(-time.Minute * 60),
+					Title:    new("Message from Ashley"),
+					Priority: PriorityHigh,
+					Body:     "See you there!",
 				},
 				{
-					Date:  time.Now().Add(-time.Minute * 10),
-					Title: "Message from Ashley",
-					Body:  "Where are you?",
+					Id:       uuid.New(),
+					Date:     time.Now().Add(-time.Minute * 10),
+					Title:    new("Message from Ashley"),
+					Priority: PriorityHigh,
+					Body:     "Where are you?",
 				},
 			},
 			3: {
 				{
-					Date:  time.Now(),
-					Title: "Message from Boss",
-					Body:  "Come here right now!",
+					Id:       uuid.New(),
+					Date:     time.Now(),
+					Title:    new("Message from Boss"),
+					Priority: PriorityHigh,
+					Body:     "Come here right now!",
 				},
 			},
 		},
 	}
+}
+
+func (s Service) AmountByUserID(userID uint) int {
+	return len(s.notifications[userID])
 }
 
 func (s Service) ListByUserID(userID uint) []Notification {
