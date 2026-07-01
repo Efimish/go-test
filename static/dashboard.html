@@ -1,44 +1,42 @@
 <!doctype html>
-<html lang="en">
+<html class="bg-orange-300" lang="ru">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
-    />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <title>Secret Dashboard</title>
   </head>
+
   <body>
-    <main class="container">
-      <h1>Secret Dashboard</h1>
-      <article>
-        <h2>Auth Token</h2>
-        <textarea id="token-textarea" placeholder="*****" disabled></textarea>
+    <main class="mx-auto max-w-3xl p-4">
+      <h1 class="text-3xl font-bold my-4">Secret Dashboard</h1>
+      <article class="card bg-blue-100 p-4 my-4">
+        <h2 class="text-xl font-bold">Auth Token</h2>
+        <textarea class="textarea w-full" id="token-textarea" placeholder="*****" disabled></textarea>
       </article>
-      <article>
-        <h2>POST /auth/login</h2>
+      <article class="card bg-blue-100 p-4 my-4">
+        <h2 class="text-xl font-bold">POST /auth/login</h2>
         <form id="post-auth-login-form">
-          <fieldset class="grid">
-            <label>
-              Username
-              <input name="username" placeholder="Username" />
-              <small>try "Hannah"</small>
-            </label>
-            <label>
-              Password
-              <input type="password" name="password" placeholder="********" />
-              <small>try "1"</small>
-            </label>
-          </fieldset>
-          <input type="submit" value="Login" />
+          <div class="flex w-full mb-2">
+            <fieldset class="fieldset w-full">
+              <legend class="fieldset-legend">Username</legend>
+              <input type="text" class="input" name="username" value="Hannah" />
+            </fieldset>
+            <fieldset class="fieldset w-full">
+              <legend class="fieldset-legend">Password</legend>
+              <input type="password" class="input" name="password" value="1" />
+            </fieldset>
+          </div>
+          <input class="btn" type="submit" value="Login" />
         </form>
       </article>
-      <article>
-        <h2>GET /notifications</h2>
-        <button id="get-notifications-button">GET</button>
+      <article class="card bg-blue-100 p-4 my-4">
+        <h2 class="text-xl font-bold">GET /notifications/list</h2>
+        <button class="btn mb-2" id="get-notifications-button">GET</button>
         <textarea
+          class="textarea w-full h-120"
           id="get-notifications-textarea"
           placeholder="[]"
           disabled
@@ -48,6 +46,8 @@
   </body>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
+      const origin = window.location.origin;
+
       const tokenTextArea = document.getElementById("token-textarea");
       const postAuthLoginForm = document.getElementById("post-auth-login-form");
       const getNotificationsButton = document.getElementById(
@@ -60,7 +60,7 @@
         ev.preventDefault();
         const formData = new FormData(postAuthLoginForm);
         const dataObject = Object.fromEntries(formData.entries());
-        const response = await fetch("http://127.0.0.1:3000/auth/login", {
+        const response = await fetch(new URL("/auth/login", origin), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -70,11 +70,10 @@
         const result = await response.json();
         const token = result.token;
         tokenTextArea.value = token;
-        alert(`Успех! Токен: ${token}`);
       });
       getNotificationsButton.addEventListener("click", async (ev) => {
         ev.preventDefault();
-        const response = await fetch("http://127.0.0.1:3000/notifications", {
+        const response = await fetch(new URL("/notifications", origin), {
           headers: {
             Authorization: `Bearer ${tokenTextArea.value}`,
           },
