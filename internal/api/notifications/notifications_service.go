@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -69,10 +70,16 @@ func NewService(publicURL string) Service {
 	}
 }
 
-func (s Service) AmountByUserID(userID uint) int {
-	return len(s.notifications[userID])
+func (s Service) AmountByUserId(userId uint) int {
+	return len(s.notifications[userId])
 }
 
-func (s Service) ListByUserID(userID uint) []Notification {
-	return s.notifications[userID]
+func (s Service) ListByUserId(userId uint) []Notification {
+	return s.notifications[userId]
+}
+
+func (s Service) DeleteByIds(userId uint, ids uuid.UUIDs) {
+	s.notifications[userId] = slices.DeleteFunc(s.notifications[userId], func(n Notification) bool {
+		return slices.Contains(ids, n.Id)
+	})
 }
